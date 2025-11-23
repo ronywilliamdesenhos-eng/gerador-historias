@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gerador de Histórias — Online (Simplificado)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#3b82f6}
+  *{box-sizing:border-box;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
+  body{margin:0;background:linear-gradient(180deg,#071025,#0b1220);color:#e6eef8}
+  .container{max-width:980px;margin:28px auto;padding:20px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:12px}
+  h1{margin:0 0 8px;font-size:24px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type=text],textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  textarea{min-height:90px;resize:vertical}
+  .row{display:flex;gap:12px}
+  .col{flex:1}
+  .btn{background:linear-gradient(90deg,var(--accent),#2563eb);color:white;border:none;padding:12px 16px;border-radius:10px;cursor:pointer;font-weight:600}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  .muted{color:var(--muted);font-size:13px}
+  pre{white-space:pre-wrap;background:#071122;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);overflow:auto}
+  .footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>📖 Gerador de Histórias — Online (Sem API)</h1>
+    <div class="muted">Versão web simplificada sem API e sem WebLLM. Funciona 100% no navegador usando gerador local.</div>
+
+    <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.02)">
+
+    <div class="grid">
+      <div>
+        <label>🌍 País</label>
+        <input id="country" type="text" placeholder="Ex: Brasil" />
+      </div>
+      <div>
+        <label>📝 Título</label>
+        <input id="title" type="text" placeholder="Ex: XIV's Warning: Respect in Communion" />
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>✍️ Sinopse</label>
+      <textarea id="synopsis" placeholder="Descreva a base da história..."></textarea>
+    </div>
+
+    <div style="margin-top:12px" class="row">
+      <div class="col">
+        <label>🌐 Idioma</label>
+        <select id="language">
+          <option>Portuguese</option>
+          <option>English</option>
+          <option selected>Spanish</option>
+          <option>French</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>🎭 Tom</label>
+        <select id="tone">
+          <option value="emotional">Emocional</option>
+          <option value="dramatic">Dramático</option>
+          <option value="inspiring">Inspirador</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="row">
+      <button id="generate" class="btn">▶️ Gerar História & Prompts</button>
+      <button id="example" class="btn-ghost">Carregar Exemplo</button>
+    </div>
+
+    <div id="status" class="muted" style="margin-top:10px"></div>
+  </div>
+
+  <div id="output" style="margin-top:14px"></div>
+
+  <div class="footer">
+    Este gerador web usa um sistema local de criação de narrativa. Nenhuma API é utilizada.
+  </div>
+</div>
+
+<script>
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function joinSentences(s){ return s.join(" "); }
+
+function paragraph(theme, tone){
+  const subj=["Ele","Ela","O protagonista","A personagem","A figura central"];
+  const verbs=["enfrentou","recordou","sentiu","descobriu","questionou","presenciou"];
+  const objs=["um silêncio profundo","um sinal inesperado","uma luta interior","uma dúvida antiga","uma verdade desconfortável"];
+  const mood = tone==="dramatic" ? "Tudo parecia à beira de um colapso." :
+              tone==="inspiring" ? "Mesmo assim, havia esperança no ar." :
+              "As emoções eram difíceis de conter.";
+  return `${rand(subj)} ${rand(verbs)} ${rand(objs)} enquanto pensava sobre ${theme}. ${mood}`;
+}
+
+function buildChapter(idx,title,country,tone,theme){
+  const chapTitle = `${idx}. ${title} — Parte ${idx}`;
+  const summary = `Neste capítulo, surge um conflito envolvendo ${rand([country,"mudança","fé","memória"])}.`;
+  let body = "";
+  for(let i=0;i<4;i++){
+    body += paragraph(theme,tone)+"\n\n";
+  }
+  return {title:chapTitle, summary, body};
+}
+
+function generateStory(inputs){
+  const {country,title,synopsis,language,tone}=inputs;
+  const theme = synopsis.split(" ").slice(0,4).join(" ");
+  const chapters=[];
+  for(let i=1;i<=5;i++){
+    chapters.push(buildChapter(i,title,country,tone,theme));
+  }
+  let text="";
+  chapters.forEach((c,i)=>{
+    text+=`══════════════════════════════════\nCAPÍTULO ${i+1}: ${c.title}\n══════════════════════════════════\n\nRESUMO:\n${c.summary}\n\n${c.body}\n`;
+  });
+  return {chapters, full:text};
+}
+
+function generatePrompts(chapters,title){
+  const chapter_prompts = chapters.map((c,i)=> 
+    `Capítulo ${i+1}: ${c.title}. Visual cinematográfico, luz dramática, composição intensa, cores fortes, atmosfera emocional.`
+  );
+  const thumbnail_prompt = `THUMBNAIL: ${title.toUpperCase()} — rosto em close, luz vermelha, estilo dramático, impacto visual máximo, título em destaque.`;
+  return {chapter_prompts, thumbnail_prompt};
+}
+
+document.getElementById("example").addEventListener("click",()=>{
+  document.getElementById("country").value="Vaticano";
+  document.getElementById("title").value="XIV's Warning: Respect in Communion";
+  document.getElementById("synopsis").value="Um alerta espiritual que desafia fiéis sobre respeito e consciência na comunhão.";
+});
+
+document.getElementById("generate").addEventListener("click",()=>{
+  const country=document.getElementById("country").value.trim();
+  const title=document.getElementById("title").value.trim();
+  const synopsis=document.getElementById("synopsis").value.trim();
+  const language=document.getElementById("language").value;
+  const tone=document.getElementById("tone").value;
+
+  if(!country||!title||!synopsis){
+    alert("Preencha todos os campos obrigatórios.");
+    return;
+  }
+
+  document.getElementById("status").innerText="Gerando história...";
+
+  setTimeout(()=>{
+    const story=generateStory({country,title,synopsis,language,tone});
+    const prompts=generatePrompts(story.chapters,title);
+    renderOutput(story.full,prompts);
+    document.getElementById("status").innerText="Pronto!";
+  },200);
+});
+
+function renderOutput(text,prompts){
+  const out=document.getElementById("output");
+  let html=`<div class="card"><h2>📚 História Gerada</h2><pre id="story">${text}</pre>`;
+  html+=`<button class="btn" onclick="copyText('story')">Copiar</button>`;
+  html+=`<hr><h3>📷 Prompts</h3>`;
+  html+=`<h4>Por Capítulo</h4><ol>`;
+  prompts.chapter_prompts.forEach((p,i)=>{ html+=`<li><pre>${p}</pre></li>`; });
+  html+=`</ol>`;
+  html+=`<h4>Thumbnail</h4><pre>${prompts.thumbnail_prompt}</pre>`;
+  html+=`</div>`;
+  out.innerHTML=html;
+}
+
+function copyText(id){
+  navigator.clipboard.writeText(document.getElementById(id).innerText);
+  alert("Copiado!");
+}
+</script>
+</body>
+</html>
